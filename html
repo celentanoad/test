@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calisthenics Routine Randomizer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --bg-secondary: #f5f5f3;
+      --text: #1a1a1a;
+      --text-muted: #666660;
+      --border: rgba(0,0,0,0.12);
+      --border-hover: rgba(0,0,0,0.25);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --pull: #378ADD;
+      --push: #D85A30;
+      --squat: #1D9E75;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --bg-secondary: #252523;
+        --text: #f0ede8;
+        --text-muted: #999891;
+        --border: rgba(255,255,255,0.12);
+        --border-hover: rgba(255,255,255,0.28);
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-secondary);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .app-header {
+      margin-bottom: 2rem;
+    }
+
+    .app-header h1 {
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .app-header p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .level-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .level-control label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .level-badges {
+      display: flex;
+      gap: 4px;
+    }
+
+    .level-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 0.5px solid var(--border-hover);
+      background: var(--bg);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .level-btn.active {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
+    .level-btn:hover:not(.active) {
+      background: var(--bg-secondary);
+    }
+
+    .gen-btn {
+      margin-left: auto;
+      padding: 8px 18px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--border-hover);
+      background: var(--text);
+      color: var(--bg);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .gen-btn:hover { opacity: 0.75; }
+
+    .routine {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .empty-state {
+      padding: 3rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+    }
+
+    .category-card {
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .cat-header {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 0.5px solid var(--border);
+    }
+
+    .cat-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .cat-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .cat-time {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .exercise-row {
+      padding: 12px 14px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .exercise-main { flex: 1; }
+
+    .exercise-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .exercise-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .exercise-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .level-pip-row {
+      display: flex;
+      gap: 3px;
+    }
+
+    .pip {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border-hover);
+    }
+
+    .pip.filled { opacity: 1; }
+
+    .timer-badge {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .adjust-btns {
+      display: flex;
+      gap: 4px;
+    }
+
+    .adj-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 0.5px solid var(--border-hover);
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s;
+    }
+
+    .adj-btn:hover {
+      background: var(--bg);
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    .adj-btn:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .start-timer-btn {
+      width: 100%;
+      padding: 10px;
+      border-top: 0.5px solid var(--border);
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      border-radius: 0;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .start-timer-btn:hover {
+      background: var(--bg-secondary);
+      color: var(--text);
+    }
+
+    /* Timer overlay */
+    .timer-overlay {
+      display: none;
+      background: var(--bg);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      text-align: center;
+      margin-top: 12px;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .timer-overlay.visible { display: flex; }
+
+    .timer-exercise {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .timer-phase {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .timer-ring-wrap {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 16px;
+    }
+
+    .timer-ring-wrap svg { transform: rotate(-90deg); }
+
+    .timer-circle-bg {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 6;
+    }
+
+    .timer-circle-fg {
+      fill: none;
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear;
+    }
+
+    .timer-num {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .timer-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .timer-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .timer-btn {
+      padding: 7px 16px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--border-hover);
+      background: var(--bg-secondary);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .timer-btn:hover { background: var(--bg); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="app-header">
+    <h1>Daily routine</h1>
+    <p>One exercise per category, 3–5 min each with work/rest intervals</p>
+  </div>
+
+  <div class="controls">
+    <div class="level-control">
+      <label>Level</label>
+      <div class="level-badges" id="level-btns"></div>
+    </div>
+    <button class="gen-btn" id="gen-btn">Generate routine</button>
+  </div>
+
+  <div class="routine" id="routine">
+    <div class="empty-state">Hit "Generate routine" to get started</div>
+  </div>
+
+  <div class="timer-overlay" id="timer-overlay">
+    <div class="timer-exercise" id="t-exercise"></div>
+    <div class="timer-phase" id="t-phase"></div>
+    <div class="timer-ring-wrap">
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <circle class="timer-circle-bg" cx="60" cy="60" r="54"/>
+        <circle class="timer-circle-fg" id="t-circle" cx="60" cy="60" r="54"/>
+      </svg>
+      <div class="timer-num" id="t-num">0</div>
+    </div>
+    <div class="timer-label" id="t-label"></div>
+    <div class="timer-controls">
+      <button class="timer-btn" id="t-pause">Pause</button>
+      <button class="timer-btn" id="t-skip">Skip</button>
+      <button class="timer-btn" id="t-stop">Stop</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// EXERCISE DATA
+// Each exercise:
+//   id       – unique string
+//   name     – display name
+//   category – "pull" | "push" | "squat"
+//   level    – 1 (easiest) to 5 (hardest)
+//   timer    – { work: seconds, rest: seconds }
+//   desc     – brief coaching cue
+// ─────────────────────────────────────────────
+const EXERCISES = {
+  pull: [
+    {
+      id: 'pull_01',
+      name: 'Dead hang',
+      category: 'pull',
+      level: 1,
+      timer: { work: 30, rest: 30 },
+      desc: 'Hang from bar with straight arms, shoulders packed down. Builds grip and shoulder stability.'
+    },
+    {
+      id: 'pull_02',
+      name: 'Scapular pulls',
+      category: 'pull',
+      level: 1,
+      timer: { work: 30, rest: 30 },
+      desc: 'From a dead hang, retract your shoulder blades without bending elbows. Small movement, big activation.'
+    },
+    {
+      id: 'pull_03',
+      name: 'Jumping pull-ups',
+      category: 'pull',
+      level: 2,
+      timer: { work: 35, rest: 25 },
+      desc: 'Jump to get your chin over the bar, then lower yourself slowly (3–5 sec). Builds the descent pattern.'
+    },
+    {
+      id: 'pull_04',
+      name: 'Negative pull-ups',
+      category: 'pull',
+      level: 2,
+      timer: { work: 35, rest: 25 },
+      desc: 'Start with chin above bar (jump or chair), lower as slowly as possible. Pure eccentric strength.'
+    },
+    {
+      id: 'pull_05',
+      name: 'Assisted pull-ups',
+      category: 'pull',
+      level: 3,
+      timer: { work: 40, rest: 20 },
+      desc: 'Loop a resistance band on the bar and place a knee in it. Full range of motion with help.'
+    },
+    {
+      id: 'pull_06',
+      name: 'Pull-ups',
+      category: 'pull',
+      level: 3,
+      timer: { work: 40, rest: 20 },
+      desc: 'Hang, pull until chin clears the bar, lower with control. The standard.'
+    },
+    {
+      id: 'pull_07',
+      name: 'Wide grip pull-ups',
+      category: 'pull',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Hands wider than shoulder width. Emphasizes lats more than biceps.'
+    },
+    {
+      id: 'pull_08',
+      name: 'Chin-ups',
+      category: 'pull',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Underhand grip, shoulder width. More bicep involvement than pull-ups.'
+    },
+    {
+      id: 'pull_09',
+      name: 'Commando pull-ups',
+      category: 'pull',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Grip bar with hands parallel, nose to one side of bar on the way up, alternate each rep.'
+    },
+    {
+      id: 'pull_10',
+      name: 'L-sit pull-ups',
+      category: 'pull',
+      level: 5,
+      timer: { work: 40, rest: 20 },
+      desc: 'Hold legs straight out (L-sit position) while performing a pull-up. Core + pull combo.'
+    },
+    {
+      id: 'pull_11',
+      name: 'Archer pull-ups',
+      category: 'pull',
+      level: 5,
+      timer: { work: 40, rest: 20 },
+      desc: 'One arm pulls while the other extends straight out to the side. Single-arm progression.'
+    }
+  ],
+
+  push: [
+    {
+      id: 'push_01',
+      name: 'Wall push-ups',
+      category: 'push',
+      level: 1,
+      timer: { work: 35, rest: 25 },
+      desc: 'Hands on wall, body at an angle. Lowest resistance, good for learning straight-body position.'
+    },
+    {
+      id: 'push_02',
+      name: 'Incline push-ups',
+      category: 'push',
+      level: 1,
+      timer: { work: 35, rest: 25 },
+      desc: 'Hands elevated on a chair or step. Same pattern as a push-up, less bodyweight load.'
+    },
+    {
+      id: 'push_03',
+      name: 'Knee push-ups',
+      category: 'push',
+      level: 2,
+      timer: { work: 35, rest: 25 },
+      desc: 'Knees on ground, straight line from knee to shoulder. Build chest and tricep strength.'
+    },
+    {
+      id: 'push_04',
+      name: 'Push-ups',
+      category: 'push',
+      level: 3,
+      timer: { work: 40, rest: 20 },
+      desc: 'Straight body, hands shoulder-width, lower chest to floor, press up. The gold standard.'
+    },
+    {
+      id: 'push_05',
+      name: 'Wide push-ups',
+      category: 'push',
+      level: 3,
+      timer: { work: 40, rest: 20 },
+      desc: 'Hands wider than shoulders. More chest, less tricep.'
+    },
+    {
+      id: 'push_06',
+      name: 'Close grip push-ups',
+      category: 'push',
+      level: 3,
+      timer: { work: 40, rest: 20 },
+      desc: 'Hands close together. More tricep focus.'
+    },
+    {
+      id: 'push_07',
+      name: 'Decline push-ups',
+      category: 'push',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Feet elevated on a chair. Shifts load to upper chest and shoulders.'
+    },
+    {
+      id: 'push_08',
+      name: 'Diamond push-ups',
+      category: 'push',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Thumbs and index fingers form a diamond. Heavy tricep and inner chest emphasis.'
+    },
+    {
+      id: 'push_09',
+      name: 'Archer push-ups',
+      category: 'push',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'One arm bends to lower your chest, the other extends straight out. Single-arm progression.'
+    },
+    {
+      id: 'push_10',
+      name: 'Pike push-ups',
+      category: 'push',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Hips high in the air, lower your head toward the floor. Targets shoulders — handstand progression.'
+    },
+    {
+      id: 'push_11',
+      name: 'Pseudo planche push-ups',
+      category: 'push',
+      level: 5,
+      timer: { work: 40, rest: 20 },
+      desc: 'Hands rotated out, leaning far forward. Extreme anterior deltoid and wrist load.'
+    },
+    {
+      id: 'push_12',
+      name: 'Handstand push-ups',
+      category: 'push',
+      level: 5,
+      timer: { work: 35, rest: 25 },
+      desc: 'Kick into a wall handstand, lower head to floor, press back up. Maximum overhead pressing.'
+    }
+  ],
+
+  squat: [
+    {
+      id: 'squat_01',
+      name: 'Box squat',
+      category: 'squat',
+      level: 1,
+      timer: { work: 35, rest: 25 },
+      desc: 'Squat down to a chair or box and lightly touch it before standing. Teaches depth safely.'
+    },
+    {
+      id: 'squat_02',
+      name: 'Assisted squat',
+      category: 'squat',
+      level: 1,
+      timer: { work: 35, rest: 25 },
+      desc: 'Hold a door frame or pole for balance while squatting. Build the pattern safely.'
+    },
+    {
+      id: 'squat_03',
+      name: 'Bodyweight squat',
+      category: 'squat',
+      level: 2,
+      timer: { work: 40, rest: 20 },
+      desc: 'Feet shoulder-width, squat to parallel or below, stand. The foundation of everything.'
+    },
+    {
+      id: 'squat_04',
+      name: 'Sumo squat',
+      category: 'squat',
+      level: 2,
+      timer: { work: 40, rest: 20 },
+      desc: 'Wide stance, toes out. Targets inner thighs and glutes more than a standard squat.'
+    },
+    {
+      id: 'squat_05',
+      name: 'Pulse squats',
+      category: 'squat',
+      level: 2,
+      timer: { work: 40, rest: 20 },
+      desc: 'Hold the bottom of a squat and pulse up and down a few inches. Time under tension burner.'
+    },
+    {
+      id: 'squat_06',
+      name: 'Jump squats',
+      category: 'squat',
+      level: 3,
+      timer: { work: 35, rest: 25 },
+      desc: 'Squat down, explode upward into a jump. Land softly and immediately drop into the next rep.'
+    },
+    {
+      id: 'squat_07',
+      name: 'Bulgarian split squat',
+      category: 'squat',
+      level: 3,
+      timer: { work: 40, rest: 20 },
+      desc: 'Rear foot elevated on a chair, front foot forward. Single-leg squat — balance and strength.'
+    },
+    {
+      id: 'squat_08',
+      name: 'Narrow squat',
+      category: 'squat',
+      level: 3,
+      timer: { work: 40, rest: 20 },
+      desc: 'Feet together or very close. Challenges balance and shifts emphasis to quads.'
+    },
+    {
+      id: 'squat_09',
+      name: 'Sissy squat',
+      category: 'squat',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Lean back as you lower, knees travel far forward, heels may rise. Pure quad isolation.'
+    },
+    {
+      id: 'squat_10',
+      name: 'Shrimp squat',
+      category: 'squat',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Single leg, hold other foot behind you. Lower until back knee nearly touches the floor.'
+    },
+    {
+      id: 'squat_11',
+      name: 'Pistol squat progression',
+      category: 'squat',
+      level: 4,
+      timer: { work: 40, rest: 20 },
+      desc: 'Single leg squat, other leg straight in front. Use a hand for balance assist until you have it.'
+    },
+    {
+      id: 'squat_12',
+      name: 'Pistol squat',
+      category: 'squat',
+      level: 5,
+      timer: { work: 40, rest: 20 },
+      desc: 'Full single-leg squat, heel on floor, other leg straight out. The king of bodyweight legs.'
+    }
+  ]
+};
+
+// ─────────────────────────────────────────────
+// APP STATE
+// ─────────────────────────────────────────────
+const COLORS = { pull: '#378ADD', push: '#D85A30', squat: '#1D9E75' };
+const CAT_LABELS = { pull: 'Pull', push: 'Push', squat: 'Squat' };
+const CIRCUMFERENCE = 2 * Math.PI * 54;
+
+let selectedLevel = 2;
+let routine = [];
+let timerState = null;
+let timerInterval = null;
+
+// ─────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getExercisesForLevel(cat, lvl) {
+  const exact = EXERCISES[cat].filter(e => e.level === lvl);
+  if (exact.length) return exact;
+  const nearby = EXERCISES[cat].filter(e => Math.abs(e.level - lvl) <= 1);
+  return nearby.length ? nearby : EXERCISES[cat];
+}
+
+function calcRounds(work, rest, targetMin) {
+  const roundSec = work + rest;
+  return Math.max(3, Math.min(6, Math.round((targetMin * 60) / roundSec)));
+}
+
+// ─────────────────────────────────────────────
+// RENDER: LEVEL BUTTONS
+// ─────────────────────────────────────────────
+function renderLevelBtns() {
+  const wrap = document.getElementById('level-btns');
+  wrap.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const b = document.createElement('button');
+    b.className = 'level-btn' + (i === selectedLevel ? ' active' : '');
+    b.textContent = i;
+    b.onclick = () => { selectedLevel = i; renderLevelBtns(); };
+    wrap.appendChild(b);
+  }
+}
+
+// ─────────────────────────────────────────────
+// RENDER: ROUTINE CARDS
+// ─────────────────────────────────────────────
+function adjustExercise(catIdx, dir) {
+  const cat = routine[catIdx].cat;
+  const newLvl = Math.max(1, Math.min(5, routine[catIdx].exercise.level + dir));
+  const pool = EXERCISES[cat].filter(e => e.level === newLvl);
+  if (!pool.length) return;
+  routine[catIdx].exercise = pick(pool);
+  renderRoutine();
+}
+
+function renderRoutine() {
+  const wrap = document.getElementById('routine');
+  if (!routine.length) {
+    wrap.innerHTML = '<div class="empty-state">Hit "Generate routine" to get started</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+
+  routine.forEach((item, catIdx) => {
+    const { cat, exercise, targetMin } = item;
+    const rounds = calcRounds(exercise.timer.work, exercise.timer.rest, targetMin);
+    const totalSec = rounds * (exercise.timer.work + exercise.timer.rest);
+    const mins = Math.round(totalSec / 60);
+
+    const card = document.createElement('div');
+    card.className = 'category-card';
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'cat-header';
+    header.innerHTML = `
+      <div class="cat-label">
+        <div class="cat-dot" style="background:${COLORS[cat]}"></div>
+        <span class="cat-title">${CAT_LABELS[cat]}</span>
+      </div>
+      <span class="cat-time">~${mins} min &middot; ${rounds} rounds</span>
+    `;
+    card.appendChild(header);
+
+    // Exercise row
+    const row = document.createElement('div');
+    row.className = 'exercise-row';
+
+    const main = document.createElement('div');
+    main.className = 'exercise-main';
+    main.innerHTML = `
+      <div class="exercise-name">${exercise.name}</div>
+      <div class="exercise-desc">${exercise.desc}</div>
+    `;
+
+    const meta = document.createElement('div');
+    meta.className = 'exercise-meta';
+
+    // Level pips
+    const pips = document.createElement('div');
+    pips.className = 'level-pip-row';
+    for (let i = 1; i <= 5; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'pip' + (i <= exercise.level ? ' filled' : '');
+      if (i <= exercise.level) pip.style.background = COLORS[cat];
+      pips.appendChild(pip);
+    }
+
+    const badge = document.createElement('div');
+    badge.className = 'timer-badge';
+    badge.textContent = `${exercise.timer.work}s on / ${exercise.timer.rest}s off`;
+
+    // +/- buttons
+    const adjs = document.createElement('div');
+    adjs.className = 'adjust-btns';
+
+    const dn = document.createElement('button');
+    dn.className = 'adj-btn';
+    dn.textContent = '−';
+    dn.title = 'Easier';
+    dn.disabled = !EXERCISES[cat].some(e => e.level < exercise.level);
+    dn.onclick = () => adjustExercise(catIdx, -1);
+
+    const up = document.createElement('button');
+    up.className = 'adj-btn';
+    up.textContent = '+';
+    up.title = 'Harder';
+    up.disabled = !EXERCISES[cat].some(e => e.level > exercise.level);
+    up.onclick = () => adjustExercise(catIdx, 1);
+
+    adjs.appendChild(dn);
+    adjs.appendChild(up);
+
+    meta.appendChild(pips);
+    meta.appendChild(badge);
+    meta.appendChild(adjs);
+
+    row.appendChild(main);
+    row.appendChild(meta);
+    card.appendChild(row);
+
+    // Start timer button
+    const startBtn = document.createElement('button');
+    startBtn.className = 'start-timer-btn';
+    startBtn.textContent = `Start ${CAT_LABELS[cat]} timer`;
+    startBtn.onclick = () => startTimer(exercise, rounds, cat);
+    card.appendChild(startBtn);
+
+    wrap.appendChild(card);
+  });
+}
+
+// ─────────────────────────────────────────────
+// GENERATE
+// ─────────────────────────────────────────────
+function generate() {
+  routine = ['pull', 'push', 'squat'].map(cat => {
+    const pool = getExercisesForLevel(cat, selectedLevel);
+    const exercise = pick(pool);
+    const targetMin = 3 + Math.floor(Math.random() * 3); // 3, 4, or 5 min
+    return { cat, exercise, targetMin };
+  });
+  renderRoutine();
+}
+
+// ─────────────────────────────────────────────
+// TIMER
+// ─────────────────────────────────────────────
+function startTimer(exercise, rounds, cat) {
+  stopTimer();
+  const overlay = document.getElementById('timer-overlay');
+  overlay.classList.add('visible');
+  overlay.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const circle = document.getElementById('t-circle');
+  circle.style.stroke = COLORS[cat];
+  circle.style.strokeDasharray = CIRCUMFERENCE;
+
+  timerState = {
+    exercise,
+    rounds,
+    cat,
+    currentRound: 1,
+    phase: 'work',
+    remaining: exercise.timer.work,
+    paused: false
+  };
+
+  updateTimerUI();
+  timerInterval = setInterval(tick, 1000);
+}
+
+function tick() {
+  if (!timerState || timerState.paused) return;
+  timerState.remaining--;
+  if (timerState.remaining <= 0) {
+    if (timerState.phase === 'work') {
+      timerState.phase = 'rest';
+      timerState.remaining = timerState.exercise.timer.rest;
+    } else {
+      if (timerState.currentRound >= timerState.rounds) {
+        stopTimer();
+        return;
+      }
+      timerState.currentRound++;
+      timerState.phase = 'work';
+      timerState.remaining = timerState.exercise.timer.work;
+    }
+  }
+  updateTimerUI();
+}
+
+function updateTimerUI() {
+  if (!timerState) return;
+  const { exercise, rounds, phase, remaining, currentRound } = timerState;
+  document.getElementById('t-exercise').textContent = exercise.name;
+  document.getElementById('t-phase').textContent = phase === 'work' ? 'Work' : 'Rest';
+  document.getElementById('t-num').textContent = remaining;
+  document.getElementById('t-label').textContent = `Round ${currentRound} of ${rounds}`;
+
+  const total = phase === 'work' ? exercise.timer.work : exercise.timer.rest;
+  const frac = remaining / total;
+  document.getElementById('t-circle').style.strokeDashoffset = CIRCUMFERENCE * (1 - frac);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerState = null;
+  document.getElementById('timer-overlay').classList.remove('visible');
+}
+
+// ─────────────────────────────────────────────
+// EVENT LISTENERS
+// ─────────────────────────────────────────────
+document.getElementById('t-pause').onclick = () => {
+  if (!timerState) return;
+  timerState.paused = !timerState.paused;
+  document.getElementById('t-pause').textContent = timerState.paused ? 'Resume' : 'Pause';
+};
+
+document.getElementById('t-skip').onclick = () => {
+  if (!timerState) return;
+  timerState.remaining = 1;
+};
+
+document.getElementById('t-stop').onclick = stopTimer;
+document.getElementById('gen-btn').onclick = generate;
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+renderLevelBtns();
+</script>
+</body>
+</html>
