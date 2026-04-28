@@ -711,6 +711,65 @@ const EXERCISES = {
 };
 
 // ─────────────────────────────────────────────
+// AUDIO ENGINE (Web Audio API — no files needed)
+// Safari on iOS requires AudioContext to be created
+// inside a user gesture, so we init lazily on first
+// timer start (which is always a tap).
+// ─────────────────────────────────────────────
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Resume in case it was suspended (iOS quirk)
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// Core: play a sine tone at `freq` Hz for `duration` seconds,
+// with a quick fade-out to avoid clicks.
+function beep(freq, duration, volume = 0.35, startOffset = 0) {
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+
+  const start = ctx.currentTime + startOffset;
+  gain.gain.setValueAtTime(volume, start);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+
+  osc.start(start);
+  osc.stop(start + duration + 0.05);
+}
+
+// Work phase start: two upbeat beeps (ascending)
+function soundWork() {
+  beep(660, 0.12, 0.35, 0);
+  beep(880, 0.18, 0.35, 0.15);
+}
+
+// Rest phase start: one lower, mellower tone
+function soundRest() {
+  beep(440, 0.25, 0.28, 0);
+}
+
+// Countdown ticks for last 3 seconds: soft high tick
+function soundTick() {
+  beep(1046, 0.07, 0.2, 0);
+}
+
+// All done: short ascending triumphant sequence
+function soundDone() {
+  beep(523, 0.12, 0.35, 0);
+  beep(659, 0.12, 0.35, 0.14);
+  beep(784, 0.12, 0.35, 0.28);
+  beep(1046, 0.3,  0.35, 0.42);
+}
+
+// ─────────────────────────────────────────────
 // APP STATE
 // ─────────────────────────────────────────────
 const COLORS = { pull: '#378ADD', push: '#D85A30', squat: '#1D9E75' };
@@ -901,6 +960,7 @@ function startTimer(exercise, rounds, cat) {
     paused: false
   };
 
+  soundWork();
   updateTimerUI();
   timerInterval = setInterval(tick, 1000);
 }
@@ -908,20 +968,27 @@ function startTimer(exercise, rounds, cat) {
 function tick() {
   if (!timerState || timerState.paused) return;
   timerState.remaining--;
+
   if (timerState.remaining <= 0) {
     if (timerState.phase === 'work') {
       timerState.phase = 'rest';
       timerState.remaining = timerState.exercise.timer.rest;
+      soundRest();
     } else {
       if (timerState.currentRound >= timerState.rounds) {
+        soundDone();
         stopTimer();
         return;
       }
       timerState.currentRound++;
       timerState.phase = 'work';
       timerState.remaining = timerState.exercise.timer.work;
+      soundWork();
     }
+  } else if (timerState.remaining <= 3) {
+    soundTick();
   }
+
   updateTimerUI();
 }
 
